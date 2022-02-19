@@ -16,5 +16,7 @@
 # Add a feed source
 #echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
 #echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >>feeds.conf.default
-git clone https://github.com/scutclient/luci-app-scutclient feeds/luci/applications
+mkdir /usr/custom-feed
+git clone https://github.com/scutclient/luci-app-scutclient  /usr/custom-feed/luci-app-scutclient
 git clone https://github.com/scutclient/scutclient package/scutclient
+echo 'src-link custom /usr/custom-feed/ >>feeds.conf.default
