@@ -51,7 +51,6 @@ jobs:
         cd openwrt
         $GITHUB_WORKSPACE/$DIY_P1_SH
     - name: Update feeds
-      run: cd openwrt && ./scripts/feeds update -a
-
-    - name: show error
-      run: cat logs/feeds/custom/luci-app-scutclient/dump.txt
+      run: |
+        cd openwrt && ./scripts/feeds update -a
+        cat ./logs/feeds/custom/luci-app-scutclient/dump.txt
