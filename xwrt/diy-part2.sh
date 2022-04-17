@@ -20,10 +20,10 @@ git clone https://github.com/scutclient/luci-app-scutclient package/feeds/luci/l
 git clone https://github.com/scutclient/scutclient package/scutclient
 
 cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
-cp files/xwrt/luci.patch feeds/luci/
+cp files/xwrt-luci.patch feeds/luci/
 
 cd $PWD/package/feeds/luci/luci-app-scutclient
 git apply scutclient.patch
 
 cd $PWD/feeds/luci
-git apply luci.patch
+git apply xwrt-luci.patch
