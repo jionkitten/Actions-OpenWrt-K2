@@ -19,8 +19,8 @@ git clone https://github.com/tty228/luci-app-serverchan package/feeds/luci/luci-
 git clone https://github.com/scutclient/luci-app-scutclient package/feeds/luci/luci-app-scutclient
 git clone https://github.com/scutclient/scutclient package/scutclient
 
-cp ../xwrt/scutclient.patch package/feeds/luci/luci-app-scutclient/
-cp ../xwrt/luci.patch feeds/luci/
+cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
+cp files/xwrt/luci.patch feeds/luci/
 
 cd $PWD/package/feeds/luci/luci-app-scutclient
 git apply scutclient.patch
