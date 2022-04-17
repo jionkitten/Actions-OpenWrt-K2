@@ -1,0 +1,121 @@
+diff --git a/Makefile b/Makefile
+index bf113c0..9883075 100644
+--- a/Makefile
++++ b/Makefile
+@@ -11,6 +11,6 @@ PKG_VERSION:=1.2
+ PKG_RELEASE:=2
+ PKG_LICENSE:=Apache-2.0
+ 
+-include ../../luci.mk
++include $(TOPDIR)/feeds/luci/luci.mk
+ 
+ # call BuildPackage - OpenWrt buildroot signature
+diff --git a/luasrc/controller/scutclient.lua b/luasrc/controller/scutclient.lua
+index 38afc39..f27cbcc 100644
+--- a/luasrc/controller/scutclient.lua
++++ b/luasrc/controller/scutclient.lua
+@@ -14,47 +14,47 @@ function index()
+ 	local uci = require "luci.model.uci".cursor()
+ 	local mainorder = uci:get_first("scutclient", "luci", "mainorder", 10)
+ 	if not uci:get_first("scutclient", "luci", "configured", false) then
+-		entry({"admin", "scutclient"},
+-			alias("admin", "scutclient", "settings"),
++		entry({"admin", "network", "scutclient"},
++			alias("admin", "network", "scutclient", "settings"),
+ 			"华南理工大学客户端",
+ 			mainorder
+ 		)
+ 
+-		entry({"admin", "scutclient", "settings"},
++		entry({"admin", "network", "scutclient", "settings"},
+ 			cbi("scutclient/scutclient"),
+ 			"设置",
+ 			10
+ 		).leaf = true
+ 
+-		entry({"admin", "scutclient", "status"},
++		entry({"admin", "network", "scutclient", "status"},
+ 			call("action_status"),
+ 			"状态",
+ 			20
+ 		).leaf = true
+ 	else
+-		entry({"admin", "scutclient"},
+-			alias("admin", "scutclient", "status"),
++		entry({"admin", "network", "scutclient"},
++			alias("admin", "network", "scutclient", "status"),
+ 			"华南理工大学客户端",
+ 			mainorder
+ 		)
+ 
+-		entry({"admin", "scutclient", "status"},
++		entry({"admin", "network", "scutclient", "status"},
+ 			call("action_status"),
+ 			"状态",
+ 			10
+ 		).leaf = true
+ 
+-		entry({"admin", "scutclient", "settings"},
++		entry({"admin", "network", "scutclient", "settings"},
+ 			cbi("scutclient/scutclient"),
+ 			"设置",
+ 			20
+ 		).leaf = true
+ 	end
+-	entry({"admin", "scutclient", "logs"}, template("scutclient/logs"), "日志", 30).leaf = true
+-	entry({"admin", "scutclient", "about"}, call("action_about"), "关于", 40).leaf = true
+-	entry({"admin", "scutclient", "get_log"}, call("get_log"))
+-	entry({"admin", "scutclient", "netstat"}, call("get_netstat"))
+-	entry({"admin", "scutclient", "scutclient-log.tar"}, call("get_dbgtar"))
++	entry({"admin", "network", "scutclient", "logs"}, template("scutclient/logs"), "日志", 30).leaf = true
++	entry({"admin", "network", "scutclient", "about"}, call("action_about"), "关于", 40).leaf = true
++	entry({"admin", "network", "scutclient", "get_log"}, call("get_log"))
++	entry({"admin", "network", "scutclient", "netstat"}, call("get_netstat"))
++	entry({"admin", "network", "scutclient", "scutclient-log.tar"}, call("get_dbgtar"))
+ end
+ 
+ 
+diff --git a/luasrc/view/scutclient/logs.htm b/luasrc/view/scutclient/logs.htm
+index 6817973..7cb8525 100644
+--- a/luasrc/view/scutclient/logs.htm
++++ b/luasrc/view/scutclient/logs.htm
+@@ -11,7 +11,7 @@
+ 	<tbody>
+ 		<tr class="cbi-section-table-row cbi-rowstyle-1">
+ 			<td width="33%"><strong>配置文件</strong></td>
+-			<td><input style="margin: 2px;" class="cbi-button cbi-button-apply" type="button" value="打包下载" onclick='window.open("<%=luci.dispatcher.build_url('admin/scutclient/scutclient-log.tar')%>")'></td>
++			<td><input style="margin: 2px;" class="cbi-button cbi-button-apply" type="button" value="打包下载" onclick='window.open("<%=luci.dispatcher.build_url('admin/network/scutclient/scutclient-log.tar')%>")'></td>
+ 	</tbody>
+ </table>
+ 
+@@ -49,7 +49,7 @@ xhr_rawget = function(url,data,callback) {
+ 
+ readlog = function() {
+ 	if(!xhrobj.busy()) {
+-		xhr_rawget('<%=luci.dispatcher.build_url('admin/scutclient/get_log')%>', null,
++		xhr_rawget('<%=luci.dispatcher.build_url('admin/network/scutclient/get_log')%>', null,
+ 			function(x, log_data) {
+ 				var syslog_id = document.getElementById("syslog");
+ 				if (typeof(log_data) != "undefined") {
+diff --git a/luasrc/view/scutclient/status.htm b/luasrc/view/scutclient/status.htm
+index 4926259..7e649d4 100644
+--- a/luasrc/view/scutclient/status.htm
++++ b/luasrc/view/scutclient/status.htm
+@@ -16,7 +16,7 @@ scutclient_status.version = uci:get_first("scutclient", "drcom", "version")
+ scutclient_status.hash = uci:get_first("scutclient", "drcom", "hash")
+ scutclient_status.server_auth_ip = uci:get_first("scutclient", "drcom", "server_auth_ip")
+ local mode_links = {}
+-mode_links.base = luci.dispatcher.build_url("admin/scutclient/status")
++mode_links.base = luci.dispatcher.build_url("admin/network/scutclient/status")
+ mode_links.redial = mode_links.base.."?redial=1"
+ mode_links.logoff = mode_links.base.."?logoff=1"
+ mode_links.move_tag = mode_links.base .."?move_tag=1"
+@@ -266,7 +266,7 @@ end
+ 		}
+ 	}
+ 
+-XHR.get('<%=luci.dispatcher.build_url("admin", "scutclient", "netstat")%>', null, function(xhr, res) {
++XHR.get('<%=luci.dispatcher.build_url("admin", "network", "scutclient", "netstat")%>', null, function(xhr, res) {
+ 	var statstr = "网络状态获取错误！";
+ 	var statelem = document.getElementById("status_net");
+ 	if (res !== null && typeof(res) === 'object') {
