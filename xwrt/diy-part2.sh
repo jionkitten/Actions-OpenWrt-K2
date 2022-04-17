@@ -10,7 +10,7 @@
 # Description: OpenWrt DIY script part 2 (After Update feeds)
 #
 
-PWD=$(pwd)
+CUR_PWD=$(pwd)
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
 git clone https://github.com/thinktip/luci-theme-neobird package/feeds/luci/luci-theme-neobird
@@ -22,8 +22,8 @@ git clone https://github.com/scutclient/scutclient package/scutclient
 cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
 cp files/xwrt-luci.patch feeds/luci/
 
-cd $PWD/package/feeds/luci/luci-app-scutclient
+cd $CUR_PWD/package/feeds/luci/luci-app-scutclient
 git apply scutclient.patch
 
-cd $PWD/feeds/luci
+cd $CUR_PWD/feeds/luci
 git apply xwrt-luci.patch
