@@ -27,3 +27,9 @@ git apply scutclient.patch
 
 cd $CUR_PWD/feeds/luci
 git apply xwrt-luci.patch
+
+cd $CUR_PWD
+mkdir -p package/mosdns
+mkdir -p package/mosdns/files
+cp files/mosdns/Makefile package/mosdns
+cp files/mosdns/config.yaml package/mosdns/files
