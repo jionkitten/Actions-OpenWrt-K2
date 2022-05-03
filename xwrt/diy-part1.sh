@@ -13,7 +13,9 @@
 # Uncomment a feed source
 #sed -i 's/^#\(.*helloworld\)/\1/' feeds.conf.default
 
+git clone https://github.com/messense/aliyundrive-webdav /opt/aliyundrive
 # Add a feed source
 #echo 'src-git helloworld https://github.com/fw876/helloworld' >>feeds.conf.default
 #echo 'src-git passwall https://github.com/xiaorouji/openwrt-passwall' >>feeds.conf.default
 echo 'src-git v2raya https://github.com/v2rayA/v2raya-openwrt' >>feeds.conf.default
+echo 'src-link aliyundrive /opt/aliyundrive/openwrt' >>feeds.conf.default
