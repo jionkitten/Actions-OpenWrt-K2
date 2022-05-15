@@ -18,7 +18,7 @@ git clone https://github.com/jerrykuku/luci-theme-argon package/feeds/luci/luci-
 git clone https://github.com/tty228/luci-app-serverchan package/feeds/luci/luci-app-serverchan
 git clone https://github.com/scutclient/luci-app-scutclient package/feeds/luci/luci-app-scutclient
 git clone https://github.com/scutclient/scutclient package/scutclient
-git clone https://github.com/WYC-2020/openwrt-subconverter package/subconverter
+#git clone https://github.com/WYC-2020/openwrt-subconverter package/subconverter
 
 cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
 cp files/xwrt-luci.patch feeds/luci/
