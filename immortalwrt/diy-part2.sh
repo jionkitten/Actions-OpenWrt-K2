@@ -12,3 +12,10 @@
 
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
+CUR_PWD=$(pwd)
+
+cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
+cd $CUR_PWD/package/feeds/luci/luci-app-scutclient
+patch -p1 <scutclient.patch
+
+cd $CUR_PWD
