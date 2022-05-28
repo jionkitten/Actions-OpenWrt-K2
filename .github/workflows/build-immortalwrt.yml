@@ -15,7 +15,7 @@ on:
   - workflow_dispatch
 
 env:
-  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  REPO_URL: https://github.com/padavanonly/immortalwrt
   REPO_BRANCH: openwrt-18.06-k5.4
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: immortalwrt/.config
