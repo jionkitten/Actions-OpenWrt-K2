@@ -16,7 +16,7 @@ on:
 
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt
-  REPO_BRANCH: openwrt-18.06-k5.4
+  REPO_BRANCH: master
   FEEDS_CONF: feeds.conf.default
   CONFIG_FILE: immortalwrt/.config
   DIY_P1_SH: immortalwrt/diy-part1.sh
