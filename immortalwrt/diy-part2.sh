@@ -19,3 +19,6 @@ cd $CUR_PWD/package/feeds/luci/luci-app-scutclient
 patch -p1 <scutclient.patch
 
 cd $CUR_PWD
+
+mkdir -p package/xray-geodata
+cp files/xray-geodata/Makefile package/xray-geodata
