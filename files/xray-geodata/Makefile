@@ -10,16 +10,16 @@ include $(INCLUDE_DIR)/package.mk
 
 GEOSITE_VER:=202205282212
 GEOSITE_FILE:=geosite.dat.$(GEOIP_VER)
-define Download/geoip
+define Download/geosite
 	URL:=https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/$(GEOSITE_VER)/
 	URL_FILE:=geosite.dat
-	FILE:=$(GEOIP_FILE)
+	FILE:=$(GEOSITE_FILE)
 	HASH:=7e0de14af5ff78b7275e033bc1033a5c301d8ef864b406c4ec402eef3ec7ebb7
 endef
 
 GEOIP_VER:=202205260136
 GEOIP_FILE:=geoip.dat.$(GEOIP_VER)
-define Download/geosite
+define Download/geoip
 	URL:=https://github.com/Loyalsoldier/geoip/releases/download/$(GEOIP_VER)/
 	URL_FILE:=geoip-only-cn-private.dat
 	FILE:=$(GEOIP_FILE)
