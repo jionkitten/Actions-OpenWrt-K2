@@ -29,3 +29,4 @@ mkdir -p package/xray-geodata
 cp files/xray-geodata/Makefile package/xray-geodata
 
 cd $CUR_PWD
+rm files -rf
