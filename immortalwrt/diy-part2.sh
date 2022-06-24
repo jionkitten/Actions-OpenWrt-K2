@@ -30,6 +30,11 @@ cd $CUR_PWD/package/feeds/luci/luci-app-zerotier
 git apply zerotier.patch
 
 cd $CUR_PWD
+cp files/passwall.patch package/feeds/luci/luci-app-passwall
+cd $CUR_PWD/package/feeds/luci/luci-app-passwall
+git apply passwall.patch
+
+cd $CUR_PWD
 mkdir -p package/xray-geodata
 cp files/xray-geodata/Makefile package/xray-geodata
 
