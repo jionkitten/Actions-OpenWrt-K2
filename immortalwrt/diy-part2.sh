@@ -25,6 +25,11 @@ cd $CUR_PWD/package/feeds/mosdns/luci-app-mosdns
 git apply mosdns.patch
 
 cd $CUR_PWD
+cp files/zerotier.patch package/feeds/luci/luci-app-zerotier
+cd $CUR_PWD/package/feeds/luci/luci-app-zerotier
+git apply zerotier.patch
+
+cd $CUR_PWD
 mkdir -p package/xray-geodata
 cp files/xray-geodata/Makefile package/xray-geodata
 
