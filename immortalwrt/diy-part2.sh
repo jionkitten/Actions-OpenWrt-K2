@@ -10,10 +10,15 @@
 # Description: OpenWrt DIY script part 2 (After Update feeds)
 #
 
-git clone https://github.com/thinktip/luci-theme-neobird package/feeds/luci/luci-theme-neobird
+git clone https://github.com/xiaorouji/openwrt-passwall2 package/openwrt-passwall2
 # Modify default IP
 #sed -i 's/192.168.1.1/192.168.50.5/g' package/base-files/files/bin/config_generate
 CUR_PWD=$(pwd)
+
+cd $CUR_PWD
+cp files/passwall2.patch package/openwrt-passwall2
+cd $CUR_PWD/package/openwrt-passwall2
+git apply passwall2.patch
 
 cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
 cd $CUR_PWD/package/feeds/luci/luci-app-scutclient
@@ -28,11 +33,6 @@ cd $CUR_PWD
 cp files/zerotier.patch package/feeds/luci/luci-app-zerotier
 cd $CUR_PWD/package/feeds/luci/luci-app-zerotier
 git apply zerotier.patch
-
-cd $CUR_PWD
-cp files/passwall.patch package/feeds/luci/luci-app-passwall
-cd $CUR_PWD/package/feeds/luci/luci-app-passwall
-git apply passwall.patch
 
 cd $CUR_PWD
 mkdir -p package/xray-geodata
