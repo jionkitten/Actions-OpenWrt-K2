@@ -20,6 +20,7 @@ cp files/passwall2.patch package/openwrt-passwall2
 cd $CUR_PWD/package/openwrt-passwall2
 git apply passwall2.patch
 
+cd $CUR_PWD
 cp files/scutclient.patch package/feeds/luci/luci-app-scutclient/
 cd $CUR_PWD/package/feeds/luci/luci-app-scutclient
 patch -p1 <scutclient.patch
