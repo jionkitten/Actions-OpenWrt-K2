@@ -1,0 +1,140 @@
+diff --git a/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua b/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
+index 3146bce..de255ba 100644
+--- a/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
++++ b/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
+@@ -297,12 +297,18 @@ if true then
+     end
+ 
+     if redir_port then
++        local _sniffing
++        if remote_dns_fake then
++            _sniffing = { enabled = true, destOverride = { "fakedns" }, metadataOnly = true }
++        else
++            _sniffing = {enabled = sniffing and true or false, destOverride = { "http", "tls", (remote_dns_fake) and "fakedns"}, metadataOnly = false, routeOnly = route_only and true or nil, domainsExcluded = (sniffing and not route_only) and get_domain_excluded() or nil}
++        end
+         local inbound = {
+             port = tonumber(redir_port),
+             protocol = "dokodemo-door",
+             settings = {network = "tcp,udp", followRedirect = true},
+             streamSettings = {sockopt = {tproxy = "tproxy"}},
+-            sniffing = {enabled = sniffing and true or false, destOverride = {"http", "tls", (remote_dns_fake) and "fakedns"}, metadataOnly = false, routeOnly = route_only and true or nil, domainsExcluded = (sniffing and not route_only) and get_domain_excluded() or nil}
++            sniffing = _sniffing
+         }
+         local tcp_inbound = api.clone(inbound)
+         tcp_inbound.tag = "tcp_redir"
+diff --git a/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2 b/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2
+index f3fe8ef..362dc69 100644
+--- a/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2
++++ b/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ 
+-[[ "$ACTION" == "ifup" && "$INTERFACE" == "wan" && $(uci get "passwall2.@global[0].enabled") == "1" ]] && {
+-    /etc/init.d/passwall2 restart
+-    echo "passwall2: restart when wan ifup" > /dev/kmsg
+-}
++# [[ "$ACTION" == "ifup" && "$INTERFACE" == "wan" && $(uci get "passwall2.@global[0].enabled") == "1" ]] && {
++#     /etc/init.d/passwall2 restart
++#     echo "passwall2: restart when wan ifup" > /dev/kmsg
++# }
+ 
+diff --git a/luci-app-passwall2/root/etc/init.d/passwall2 b/luci-app-passwall2/root/etc/init.d/passwall2
+index 43fc99c..1bb9574 100755
+--- a/luci-app-passwall2/root/etc/init.d/passwall2
++++ b/luci-app-passwall2/root/etc/init.d/passwall2
+@@ -39,6 +39,7 @@ boot() {
+ start() {
+ 	set_lock
+ 	[ $? == 1 ] && $APP_FILE echolog "脚本已经在运行，不重复运行，退出." && exit 0
++  /usr/sbin/ipset restore -file /usr/share/passwall/rules/custom_proxy_ips -!
+ 	$APP_FILE start
+ 	unset_lock
+ }
+diff --git a/luci-app-passwall2/root/usr/share/passwall2/app.sh b/luci-app-passwall2/root/usr/share/passwall2/app.sh
+index 038a2ec..29324be 100755
+--- a/luci-app-passwall2/root/usr/share/passwall2/app.sh
++++ b/luci-app-passwall2/root/usr/share/passwall2/app.sh
+@@ -521,7 +521,7 @@ node_switch() {
+ 
+ 			#uci set $CONFIG.@global[0].node=$node
+ 			#uci commit $CONFIG
+-			source $APP_PATH/helper_dnsmasq.sh logic_restart no_log=1
++      # source $APP_PATH/helper_dnsmasq.sh logic_restart no_log=1
+ 		}
+ 	}
+ }
+@@ -594,8 +594,8 @@ run_global() {
+ 	msg="${msg}）"
+ 	echolog ${msg}
+ 	
+-	source $APP_PATH/helper_dnsmasq.sh stretch
+-	source $APP_PATH/helper_dnsmasq.sh add TMP_DNSMASQ_PATH=$TMP_DNSMASQ_PATH DNSMASQ_CONF_FILE=/tmp/dnsmasq.d/dnsmasq-passwall2.conf DEFAULT_DNS=$AUTO_DNS LOCAL_DNS=$LOCAL_DNS TUN_DNS=$TUN_DNS
++	# source $APP_PATH/helper_dnsmasq.sh stretch
++	# source $APP_PATH/helper_dnsmasq.sh add TMP_DNSMASQ_PATH=$TMP_DNSMASQ_PATH DNSMASQ_CONF_FILE=/tmp/dnsmasq.d/dnsmasq-passwall2.conf DEFAULT_DNS=$AUTO_DNS LOCAL_DNS=$LOCAL_DNS TUN_DNS=$TUN_DNS
+ 
+ 	V2RAY_CONFIG=$TMP_PATH/global.json
+ 	V2RAY_LOG=$TMP_PATH/global.log
+@@ -750,7 +750,7 @@ start() {
+ 		else
+ 			run_global
+ 			source $APP_PATH/iptables.sh start
+-			source $APP_PATH/helper_dnsmasq.sh logic_restart
++			# source $APP_PATH/helper_dnsmasq.sh logic_restart
+ 			sysctl -w net.bridge.bridge-nf-call-iptables=0 >/dev/null 2>&1
+ 			[ "$PROXY_IPV6" == "1" ] && sysctl -w net.bridge.bridge-nf-call-ip6tables=0 >/dev/null 2>&1
+ 		fi
+@@ -768,8 +768,8 @@ stop() {
+ 	unset V2RAY_LOCATION_ASSET
+ 	unset XRAY_LOCATION_ASSET
+ 	stop_crontab
+-	source $APP_PATH/helper_dnsmasq.sh del
+-	source $APP_PATH/helper_dnsmasq.sh restart no_log=1
++	# source $APP_PATH/helper_dnsmasq.sh del
++	# source $APP_PATH/helper_dnsmasq.sh restart no_log=1
+ 	rm -rf ${TMP_PATH}
+ 	rm -rf /tmp/lock/${CONFIG}_script.lock
+ 	echolog "清空并关闭相关程序和缓存完成。"
+diff --git a/luci-app-passwall2/root/usr/share/passwall2/iptables.sh b/luci-app-passwall2/root/usr/share/passwall2/iptables.sh
+index ca7f67a..90f9e89 100755
+--- a/luci-app-passwall2/root/usr/share/passwall2/iptables.sh
++++ b/luci-app-passwall2/root/usr/share/passwall2/iptables.sh
+@@ -564,6 +564,39 @@ dns_hijack() {
+ }
+ 
+ add_firewall_rule() {
++  echolog "开始加载防火墙规则..."
++
++  $ipt_m -N PSW_DIVERT
++  $ipt_m -A PSW_DIVERT -j MARK --set-mark 1
++  $ipt_m -A PSW_DIVERT -j ACCEPT
++
++  $ipt_m -N PSW_RULE
++  $ipt_m -A PSW_RULE -j CONNMARK --restore-mark
++  $ipt_m -A PSW_RULE -m mark --mark 1 -j RETURN
++  $ipt_m -A PSW_RULE -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -j MARK --set-xmark 1
++  $ipt_m -A PSW_RULE -p udp -m conntrack --ctstate NEW -j MARK --set-xmark 1
++  $ipt_m -A PSW_RULE -j CONNMARK --save-mark
++
++  $ipt_m -N PSW
++  insert_rule_before "$ipt_m" "PREROUTING" "mwan3" "-j PSW"
++  insert_rule_before "$ipt_m" "PREROUTING" "PSW" "-p tcp -m socket -j PSW_DIVERT"
++  $ipt_m -A PSW -p tcp $(dst proxy_ips) -j PSW_RULE
++  $ipt_m -A PSW -p udp $(dst proxy_ips) -j PSW_RULE
++  $ipt_m -A PSW -p tcp -m mark --mark 1 $(REDIRECT $TCP_REDIR_PORT TPROXY)
++  $ipt_m -A PSW -p udp -m mark --mark 1 $(REDIRECT $TCP_REDIR_PORT TPROXY)
++
++  $ipt_m -N PSW_OUTPUT
++  insert_rule_before "$ipt_m" "OUTPUT" "mwan3" "$(comment mangle-OUTPUT-PSW) -p tcp -j PSW_OUTPUT"
++  insert_rule_before "$ipt_m" "OUTPUT" "mwan3" "$(comment mangle-OUTPUT-PSW) -p udp -j PSW_OUTPUT"
++  $ipt_m -A PSW_OUTPUT -m mark --mark 0xff -j RETURN
++  $ipt_m -A PSW_OUTPUT -p tcp $(dst proxy_ips) -j PSW_RULE
++  $ipt_m -A PSW_OUTPUT -p udp $(dst proxy_ips) -j PSW_RULE
++
++  ip rule add fwmark 1 lookup 100
++  ip route add local 0.0.0.0/0 dev lo table 100
++}
++
++_add_firewall_rule() {
+ 	echolog "开始加载防火墙规则..."
+ 	ipset -! create $IPSET_LANIPLIST nethash maxelem 1048576
+ 	ipset -! create $IPSET_VPSIPLIST nethash maxelem 1048576
