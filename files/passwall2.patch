@@ -1,3 +1,16 @@
+diff --git a/luci-app-passwall2/Makefile b/luci-app-passwall2/Makefile
+index a0c2ed9..245bc1b 100644
+--- a/luci-app-passwall2/Makefile
++++ b/luci-app-passwall2/Makefile
+@@ -28,7 +28,7 @@ LUCI_TITLE:=LuCI support for PassWall 2
+ LUCI_PKGARCH:=all
+ LUCI_DEPENDS:=+coreutils +coreutils-base64 +coreutils-nohup +curl \
+ 	+ip-full +libuci-lua +lua +luci-compat +luci-lib-jsonc +resolveip +tcping \
+-	+xray-core +v2ray-geoip +v2ray-geosite \
++	+xray-core \
+ 	+unzip \
+ 	+PACKAGE_$(PKG_NAME)_INCLUDE_Brook:brook \
+ 	+PACKAGE_$(PKG_NAME)_INCLUDE_Hysteria:hysteria \
 diff --git a/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua b/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
 index 3146bce..de255ba 100644
 --- a/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
