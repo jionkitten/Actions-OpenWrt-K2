@@ -12,10 +12,20 @@ index a0c2ed9..245bc1b 100644
  	+PACKAGE_$(PKG_NAME)_INCLUDE_Brook:brook \
  	+PACKAGE_$(PKG_NAME)_INCLUDE_Hysteria:hysteria \
 diff --git a/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua b/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
-index 3146bce..de255ba 100644
+index 3146bce..b70886e 100644
 --- a/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
 +++ b/luci-app-passwall2/luasrc/model/cbi/passwall2/api/gen_v2ray.lua
-@@ -297,12 +297,18 @@ if true then
+@@ -50,7 +50,8 @@ local dns = nil
+ local fakedns = nil
+ local inbounds = {}
+ local outbounds = {}
+-local routing = nil
++local routing = {}
++local observatory
+ 
+ local function get_new_port()
+     if new_port then
+@@ -297,12 +298,18 @@ if true then
      end
  
      if redir_port then
@@ -35,6 +45,192 @@ index 3146bce..de255ba 100644
          }
          local tcp_inbound = api.clone(inbound)
          tcp_inbound.tag = "tcp_redir"
+@@ -331,6 +338,8 @@ if true then
+ 
+             local default_node_id = node.default_node or "_direct"
+             local default_outboundTag
++            local default_outboundTag_key = "outboundTag"
++            local balancers
+             if default_node_id == "_direct" then
+                 default_outboundTag = "direct"
+             elseif default_node_id == "_blackhole" then
+@@ -372,21 +381,48 @@ if true then
+                         end
+                     end
+                 end
+-                if default_node and api.is_normal_node(default_node) then
+-                    local default_outbound = gen_outbound(default_node, "default", { proxy = proxy, tag = proxy_tag })
+-                    if default_outbound then
+-                        table.insert(outbounds, default_outbound)
+-                        default_outboundTag = "default"
++                if default_node then
++                    if default_node.protocol == "_balancing" then
++                        if default_node.balancing_node then
++                            local bnodes = default_node.balancing_node
++                            local length = #bnodes
++                            local outbound_tags = {}
++                            for i = 1, length do
++                                table.insert(outbound_tags, bnodes[i])
++                                local bnode = uci:get_all(appname, bnodes[i])
++                                local outbound = gen_outbound(bnode)
++                                if outbound then
++                                  table.insert(outbounds, outbound)
++                                end
++                            end
++                            balancers = { {tag = "balancer", selector = bnodes, strategy = { type = "leastPing" }} }
++                            default_outboundTag_key = "balancerTag"
++                            default_outboundTag = "balancer"
++                            observatory = {
++                              subjectSelector = outbound_tags,
++                              probeURL = "https://www.google.com/generate_204",
++                              probeInterval = "30s",
++                            }
++                        end
++                    elseif api.is_normal_node(default_node) then
++                        local default_outbound = gen_outbound(default_node, "default", { proxy = proxy, tag = proxy_tag })
++                        if default_outbound then
++                            table.insert(outbounds, default_outbound)
++                            default_outboundTag = "default"
++                        end
+                     end
++
+                 end
+             end
+ 
++            -- TODO: support balancer
+             uci:foreach(appname, "shunt_rules", function(e)
+                 local name = e[".name"]
+                 if name and e.remarks then
+                     local _node_id = node[name] or "nil"
+                     local proxy_tag = node[name .. "_proxy_tag"] or "nil"
+                     local outboundTag
++                    local outboundTag_key = "outboundTag"
+                     if _node_id == "_direct" then
+                         outboundTag = "direct"
+                     elseif _node_id == "_blackhole" then
+@@ -427,7 +463,7 @@ if true then
+                                             table.insert(rules, 1, {
+                                                 type = "field",
+                                                 inboundTag = {"proxy_" .. name},
+-                                                outboundTag = proxy_tag
++                                                [outboundTag_key] = proxy_tag
+                                             })
+                                         end
+                                     end
+@@ -443,6 +479,7 @@ if true then
+                     if outboundTag then
+                         if outboundTag == "default" then 
+                             outboundTag = default_outboundTag
++                            outboundTag_key = default_outboundTag_key
+                         end
+                         local protocols = nil
+                         if e["protocol"] and e["protocol"] ~= "" then
+@@ -489,7 +526,7 @@ if true then
+                         local rule = {
+                             _flag = e.remarks,
+                             type = "field",
+-                            outboundTag = outboundTag,
++                            [outboundTag_key] = outboundTag,
+                             network = e["network"] or "tcp,udp",
+                             source = source,
+                             sourcePort = e["sourcePort"] ~= "" and e["sourcePort"] or nil,
+@@ -519,7 +556,7 @@ if true then
+                 table.insert(rules, {
+                     _flag = "defalut",
+                     type = "field",
+-                    outboundTag = default_outboundTag,
++                    [default_outboundTag_key] = default_outboundTag,
+                     network = "tcp,udp"
+                 })
+             end
+@@ -527,6 +564,7 @@ if true then
+             routing = {
+                 domainStrategy = node.domainStrategy or "AsIs",
+                 domainMatcher = node.domainMatcher or "hybrid",
++                balancers = balancers,
+                 rules = rules
+             }
+         elseif node.protocol == "_balancing" then
+@@ -816,7 +854,8 @@ if inbounds or outbounds then
+             --     statsInboundUplink = false,
+             --     statsInboundDownlink = false
+             -- }
+-        }
++        },
++        observatory = observatory,
+     }
+     table.insert(outbounds, {
+         protocol = "freedom",
+diff --git a/luci-app-passwall2/luasrc/model/cbi/passwall2/client/global.lua b/luci-app-passwall2/luasrc/model/cbi/passwall2/client/global.lua
+index c3321ec..d08900c 100644
+--- a/luci-app-passwall2/luasrc/model/cbi/passwall2/client/global.lua
++++ b/luci-app-passwall2/luasrc/model/cbi/passwall2/client/global.lua
+@@ -84,7 +84,7 @@ if (has_v2ray or has_xray) and #nodes_table > 0 then
+     local normal_list = {}
+     local shunt_list = {}
+     for k, v in pairs(nodes_table) do
+-        if v.node_type == "normal" then
++        if v.node_type == "normal" or (v.protocol and v.protocol == '_balancing') then
+             normal_list[#normal_list + 1] = v
+         end
+         if v.protocol and v.protocol == "_shunt" then
+diff --git a/luci-app-passwall2/luasrc/model/cbi/passwall2/client/node_config.lua b/luci-app-passwall2/luasrc/model/cbi/passwall2/client/node_config.lua
+index d6893e2..5a4846c 100644
+--- a/luci-app-passwall2/luasrc/model/cbi/passwall2/client/node_config.lua
++++ b/luci-app-passwall2/luasrc/model/cbi/passwall2/client/node_config.lua
+@@ -111,13 +111,20 @@ protocol:depends("type", "V2ray")
+ protocol:depends("type", "Xray")
+ 
+ local nodes_table = {}
++local balancers = {}
++local nodes_with_balancers = {}
+ for k, e in ipairs(api.get_valid_nodes()) do
+-    if e.node_type == "normal" then
+-        nodes_table[#nodes_table + 1] = {
+-            id = e[".name"],
+-            remarks = e["remark"]
+-        }
+-    end
++  local node = {
++    id = e[".name"],
++    remarks = e["remark"]
++  }
++  if e.node_type == "normal" then
++    nodes_table[#nodes_table + 1] = node
++    nodes_with_balancers[#nodes_with_balancers + 1] = node
++  elseif e.protocol and e.protocol == "_balancing" then
++    balancers[#balancers + 1] = node
++    nodes_with_balancers[#nodes_with_balancers + 1] = node
++  end
+ end
+ 
+ -- 负载均衡列表
+@@ -135,14 +142,14 @@ uci:foreach(appname, "shunt_rules", function(e)
+         o:value("_blackhole", translate("Blackhole"))
+         o:depends("protocol", "_shunt")
+ 
+-        if #nodes_table > 0 then
++        if #nodes_with_balancers > 0 then
+             _proxy_tag = s:option(ListValue, e[".name"] .. "_proxy_tag", string.format('* <a style="color:red">%s</a>', e.remarks .. " " .. translate("Preproxy")))
+             _proxy_tag:value("nil", translate("Close"))
+             _proxy_tag:value("default", translate("Default"))
+             _proxy_tag:value("main", translate("Default Preproxy"))
+             _proxy_tag.default = "nil"
+ 
+-            for k, v in pairs(nodes_table) do
++            for k, v in pairs(nodes_with_balancers) do
+                 o:value(v.id, v.remarks)
+                 _proxy_tag:depends(e[".name"], v.id)
+             end
+@@ -160,7 +167,7 @@ shunt_tips:depends("protocol", "_shunt")
+ default_node = s:option(ListValue, "default_node", string.format('* <a style="color:red">%s</a>', translate("Default")))
+ default_node:value("_direct", translate("Direct Connection"))
+ default_node:value("_blackhole", translate("Blackhole"))
+-for k, v in pairs(nodes_table) do default_node:value(v.id, v.remarks) end
++for k, v in pairs(nodes_with_balancers) do default_node:value(v.id, v.remarks) end
+ default_node:depends("protocol", "_shunt")
+ 
+ if #nodes_table > 0 then
 diff --git a/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2 b/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2
 index f3fe8ef..362dc69 100644
 --- a/luci-app-passwall2/root/etc/hotplug.d/iface/98-passwall2
@@ -59,7 +255,7 @@ index 43fc99c..1bb9574 100755
  start() {
  	set_lock
  	[ $? == 1 ] && $APP_FILE echolog "脚本已经在运行，不重复运行，退出." && exit 0
-+  /usr/sbin/ipset restore -file /usr/share/passwall/rules/custom_proxy_ips -!
++  /usr/sbin/ipset restore -file /usr/share/passwall2/custom_proxy_ips -!
  	$APP_FILE start
  	unset_lock
  }
@@ -108,7 +304,7 @@ index 038a2ec..29324be 100755
  	rm -rf /tmp/lock/${CONFIG}_script.lock
  	echolog "清空并关闭相关程序和缓存完成。"
 diff --git a/luci-app-passwall2/root/usr/share/passwall2/iptables.sh b/luci-app-passwall2/root/usr/share/passwall2/iptables.sh
-index ca7f67a..90f9e89 100755
+index ca7f67a..7026c2e 100755
 --- a/luci-app-passwall2/root/usr/share/passwall2/iptables.sh
 +++ b/luci-app-passwall2/root/usr/share/passwall2/iptables.sh
 @@ -564,6 +564,39 @@ dns_hijack() {
@@ -117,31 +313,31 @@ index ca7f67a..90f9e89 100755
  add_firewall_rule() {
 +  echolog "开始加载防火墙规则..."
 +
-+  $ipt_m -N PSW_DIVERT
-+  $ipt_m -A PSW_DIVERT -j MARK --set-mark 1
-+  $ipt_m -A PSW_DIVERT -j ACCEPT
++  $ipt_m -N PSW2_DIVERT
++  $ipt_m -A PSW2_DIVERT -j MARK --set-mark 1
++  $ipt_m -A PSW2_DIVERT -j ACCEPT
 +
-+  $ipt_m -N PSW_RULE
-+  $ipt_m -A PSW_RULE -j CONNMARK --restore-mark
-+  $ipt_m -A PSW_RULE -m mark --mark 1 -j RETURN
-+  $ipt_m -A PSW_RULE -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -j MARK --set-xmark 1
-+  $ipt_m -A PSW_RULE -p udp -m conntrack --ctstate NEW -j MARK --set-xmark 1
-+  $ipt_m -A PSW_RULE -j CONNMARK --save-mark
++  $ipt_m -N PSW2_RULE
++  $ipt_m -A PSW2_RULE -j CONNMARK --restore-mark
++  $ipt_m -A PSW2_RULE -m mark --mark 1 -j RETURN
++  $ipt_m -A PSW2_RULE -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -j MARK --set-xmark 1
++  $ipt_m -A PSW2_RULE -p udp -m conntrack --ctstate NEW -j MARK --set-xmark 1
++  $ipt_m -A PSW2_RULE -j CONNMARK --save-mark
 +
-+  $ipt_m -N PSW
-+  insert_rule_before "$ipt_m" "PREROUTING" "mwan3" "-j PSW"
-+  insert_rule_before "$ipt_m" "PREROUTING" "PSW" "-p tcp -m socket -j PSW_DIVERT"
-+  $ipt_m -A PSW -p tcp $(dst proxy_ips) -j PSW_RULE
-+  $ipt_m -A PSW -p udp $(dst proxy_ips) -j PSW_RULE
-+  $ipt_m -A PSW -p tcp -m mark --mark 1 $(REDIRECT $TCP_REDIR_PORT TPROXY)
-+  $ipt_m -A PSW -p udp -m mark --mark 1 $(REDIRECT $TCP_REDIR_PORT TPROXY)
++  $ipt_m -N PSW2
++  insert_rule_before "$ipt_m" "PREROUTING" "mwan3" "-j PSW2"
++  insert_rule_before "$ipt_m" "PREROUTING" "PSW2" "-p tcp -m socket -j PSW2_DIVERT"
++  $ipt_m -A PSW2 -p tcp $(dst proxy_ips) -j PSW2_RULE
++  $ipt_m -A PSW2 -p udp $(dst proxy_ips) -j PSW2_RULE
++  $ipt_m -A PSW2 -p tcp -m mark --mark 1 $(REDIRECT $REDIR_PORT TPROXY)
++  $ipt_m -A PSW2 -p udp -m mark --mark 1 $(REDIRECT $REDIR_PORT TPROXY)
 +
-+  $ipt_m -N PSW_OUTPUT
-+  insert_rule_before "$ipt_m" "OUTPUT" "mwan3" "$(comment mangle-OUTPUT-PSW) -p tcp -j PSW_OUTPUT"
-+  insert_rule_before "$ipt_m" "OUTPUT" "mwan3" "$(comment mangle-OUTPUT-PSW) -p udp -j PSW_OUTPUT"
-+  $ipt_m -A PSW_OUTPUT -m mark --mark 0xff -j RETURN
-+  $ipt_m -A PSW_OUTPUT -p tcp $(dst proxy_ips) -j PSW_RULE
-+  $ipt_m -A PSW_OUTPUT -p udp $(dst proxy_ips) -j PSW_RULE
++  $ipt_m -N PSW2_OUTPUT
++  insert_rule_before "$ipt_m" "OUTPUT" "mwan3" "$(comment mangle-OUTPUT-PSW2) -p tcp -j PSW2_OUTPUT"
++  insert_rule_before "$ipt_m" "OUTPUT" "mwan3" "$(comment mangle-OUTPUT-PSW2) -p udp -j PSW2_OUTPUT"
++  $ipt_m -A PSW2_OUTPUT -m mark --mark 0xff -j RETURN
++  $ipt_m -A PSW2_OUTPUT -p tcp $(dst proxy_ips) -j PSW2_RULE
++  $ipt_m -A PSW2_OUTPUT -p udp $(dst proxy_ips) -j PSW2_RULE
 +
 +  ip rule add fwmark 1 lookup 100
 +  ip route add local 0.0.0.0/0 dev lo table 100
