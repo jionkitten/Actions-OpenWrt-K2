@@ -1,5 +1,5 @@
 diff --git a/applications/luci-app-zerotier/root/etc/init.d/zerotier b/applications/luci-app-zerotier/root/etc/init.d/zerotier
-index 666d675..72c28a1 100755
+index 666d6753..72c28a1e 100755
 --- a/applications/luci-app-zerotier/root/etc/init.d/zerotier
 +++ b/applications/luci-app-zerotier/root/etc/init.d/zerotier
 @@ -26,27 +26,40 @@ start_instance() {
@@ -108,6 +108,38 @@ index 666d675..72c28a1 100755
  }
  
  stop_service() {
+diff --git a/applications/luci-app-zerotier/root/etc/zerotier.start b/applications/luci-app-zerotier/root/etc/zerotier.start
+index b43e5f97..46686f56 100755
+--- a/applications/luci-app-zerotier/root/etc/zerotier.start
++++ b/applications/luci-app-zerotier/root/etc/zerotier.start
+@@ -11,6 +11,12 @@ zero_enable="$(uci get zerotier.sample_config.enabled)"
+ 	done
+ }
+ 
++iptables_checked_insert() {
++	table=$1
++	shift
++	iptables -t $table -C $@ || iptables -t $table -I $@
++}
++
+ nat_enable="$(uci get zerotier.sample_config.nat)"
+ zt0="$(ifconfig | grep 'zt' | awk '{print $1}')"
+ echo "${zt0}" > "/tmp/zt.nif"
+@@ -19,10 +25,10 @@ echo "${zt0}" > "/tmp/zt.nif"
+ 	for i in ${zt0}
+ 	do
+ 		ip_segment=""
+-		iptables -I FORWARD -i "$i" -j ACCEPT
+-		iptables -I FORWARD -o "$i" -j ACCEPT
+-		iptables -t nat -I POSTROUTING -o "$i" -j MASQUERADE
++		iptables_checked_insert filter FORWARD -i "$i" -j ACCEPT
++		iptables_checked_insert filter FORWAR -o "$i" -j ACCEPT
++		iptables_checked_insert nat POSTROUTING -o "$i" -j MASQUERADE
+ 		ip_segment="$(ip route | grep "dev $i proto kernel" | awk '{print $1}')"
+-		iptables -t nat -I POSTROUTING -s "${ip_segment}" -j MASQUERADE
++		iptables_checked_insert nat POSTROUTING -s "${ip_segment}" -j MASQUERADE
+ 	done
+ }
 diff --git a/applications/luci-app-zerotier/root/etc/zerotier/zerotier.log b/applications/luci-app-zerotier/root/etc/zerotier/zerotier.log
 deleted file mode 100644
-index e69de29..0000000
+index e69de29b..00000000
