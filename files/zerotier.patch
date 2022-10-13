@@ -133,7 +133,7 @@ index b43e5f97..46686f56 100755
 -		iptables -I FORWARD -o "$i" -j ACCEPT
 -		iptables -t nat -I POSTROUTING -o "$i" -j MASQUERADE
 +		iptables_checked_insert filter FORWARD -i "$i" -j ACCEPT
-+		iptables_checked_insert filter FORWAR -o "$i" -j ACCEPT
++		iptables_checked_insert filter FORWARD -o "$i" -j ACCEPT
 +		iptables_checked_insert nat POSTROUTING -o "$i" -j MASQUERADE
  		ip_segment="$(ip route | grep "dev $i proto kernel" | awk '{print $1}')"
 -		iptables -t nat -I POSTROUTING -s "${ip_segment}" -j MASQUERADE
