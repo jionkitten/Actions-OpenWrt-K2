@@ -8,22 +8,20 @@ PKG_MAINTAINER:=none
 
 include $(INCLUDE_DIR)/package.mk
 
-GEOSITE_VER:=202210072214
+GEOSITE_VER:=202210262214
 GEOSITE_FILE:=geosite.dat.$(GEOIP_VER)
 define Download/geosite
 	URL:=https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/$(GEOSITE_VER)/
 	URL_FILE:=geosite.dat
 	FILE:=$(GEOSITE_FILE)
-	HASH:=dc67611b4dedf8319236ecadeda6e6f74d1e0a59c8d9e48ae660a025c51b5e42
 endef
 
-GEOIP_VER:=202210060141
+GEOIP_VER:=202210200153
 GEOIP_FILE:=geoip.dat.$(GEOIP_VER)
 define Download/geoip
 	URL:=https://github.com/Loyalsoldier/geoip/releases/download/$(GEOIP_VER)/
-	URL_FILE:=cn.dat
+	URL_FILE:=geoip-only-cn-private.dat
 	FILE:=$(GEOIP_FILE)
-	HASH:=3e2078be27f81a1f611e9dc22bb2f3ee08c0b86b875312ba51db020b9877e28e
 endef
 
 define Package/xray-geodata/template
