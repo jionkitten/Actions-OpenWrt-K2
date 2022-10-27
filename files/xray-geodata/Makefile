@@ -14,6 +14,7 @@ define Download/geosite
 	URL:=https://github.com/Loyalsoldier/v2ray-rules-dat/releases/download/$(GEOSITE_VER)/
 	URL_FILE:=geosite.dat
 	FILE:=$(GEOSITE_FILE)
+	HASH:=skip
 endef
 
 GEOIP_VER:=202210200153
@@ -22,6 +23,7 @@ define Download/geoip
 	URL:=https://github.com/Loyalsoldier/geoip/releases/download/$(GEOIP_VER)/
 	URL_FILE:=geoip-only-cn-private.dat
 	FILE:=$(GEOIP_FILE)
+	HASH:=skip
 endef
 
 define Package/xray-geodata/template
